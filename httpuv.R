@@ -1,6 +1,10 @@
 library(httpuv)
 
 png <- NULL
+websocket <- NULL
+
+polyfill_promise <- readLines('https://cdn.jsdelivr.net/npm/es6-promise/dist/es6-promise.auto.min.js')
+html2canvas <- readLines('https://html2canvas.hertzen.com/dist/html2canvas.min.js')
 
 app <- list(
   call = function(req) {
@@ -31,7 +35,7 @@ app <- list(
           "</body>",
           '<script type="text/javascript">',
           sprintf("var ws = new WebSocket(%s);", wsUrl),
-          "ws.onopen = function(event) {",
+          "ws.onmessage = function(event) {",
           "  html2canvas(document.body).then(function(canvas) {",
           "    var dataURL = canvas.toDataURL();",
           "    ws.send(dataURL);",
@@ -44,9 +48,9 @@ app <- list(
     )
   },
   onWSOpen = function(ws) {
+    websocket <<- ws
     ws$onMessage(function(binary, message) {
       png <<- message
-      #ws$send(message)
     })
   }
 )
@@ -57,15 +61,12 @@ html_body <- c(
   'lorem ipsum...'
 )
 
-polyfill_promise <- readLines('https://cdn.jsdelivr.net/npm/es6-promise/dist/es6-promise.auto.min.js')
-
-html2canvas <- readLines('https://html2canvas.hertzen.com/dist/html2canvas.min.js')
-
 server <- startDaemonizedServer("0.0.0.0", 9454, app)
 
 rstudioapi::viewer("http://localhost:9454")
 
-stopDaemonizedServer(server)
+# Get screenshot:
+websocket$send("go") # send any message
 
 writeBin(
   RCurl::base64Decode(
@@ -75,6 +76,4 @@ writeBin(
   "screenshot.png"
 )
 
-
-
-
+stopDaemonizedServer(server)
