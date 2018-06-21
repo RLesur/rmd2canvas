@@ -46,7 +46,7 @@ app <- list(
   onWSOpen = function(ws) {
     ws$onMessage(function(binary, message) {
       png <<- message
-      ws$send(message)
+      #ws$send(message)
     })
   }
 )
@@ -67,6 +67,13 @@ rstudioapi::viewer("http://localhost:9454")
 
 stopDaemonizedServer(server)
 
+writeBin(
+  RCurl::base64Decode(
+    gsub("data:image/png;base64,", "", png), 
+    "raw"
+  ), 
+  "screenshot.png"
+)
 
 
 
