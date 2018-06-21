@@ -15,22 +15,31 @@ app <- list(
       headers = list(
         'Content-Type' = 'text/html'
       ),
-      body = paste(
-        sep = "\r\n",
-        "<!DOCTYPE html>",
-        "<html>",
-        "<head>",
-        "</head>",
-        "<body>",
-        "Hello world",
-        "</body>",
-        "<script>",
-        sprintf("var ws = new WebSocket(%s);", wsUrl),
-        "ws.onopen = function(event) {",
-        "  ws.send('received...');",
-        "};",
-        "</script>",
-        "</html>"
+      body = paste0(collapse = "\r\n",
+        c("<!DOCTYPE html>",
+          "<html>",
+          "<head>",
+          '<script type="text/javascript">',
+          polyfill_promise,
+          "</script>",
+          '<script type="text/javascript">',
+          html2canvas,
+          "</script>",
+          "</head>",
+          "<body>",
+          html_body,
+          "</body>",
+          '<script type="text/javascript">',
+          sprintf("var ws = new WebSocket(%s);", wsUrl),
+          "ws.onopen = function(event) {",
+          "  html2canvas(document.body).then(function(canvas) {",
+          "    var dataURL = canvas.toDataURL();",
+          "    ws.send(dataURL);",
+          "  });",
+          "};",
+          "</script>",
+          "</html>"
+        )
       )
     )
   },
@@ -42,9 +51,23 @@ app <- list(
   }
 )
 
+html_body <- c(
+  '<h1> Content</h1>', 
+  '<h2> Content</h2>', 
+  'lorem ipsum...'
+)
+
+polyfill_promise <- readLines('https://cdn.jsdelivr.net/npm/es6-promise/dist/es6-promise.auto.min.js')
+
+html2canvas <- readLines('https://html2canvas.hertzen.com/dist/html2canvas.min.js')
+
 server <- startDaemonizedServer("0.0.0.0", 9454, app)
 
 rstudioapi::viewer("http://localhost:9454")
 
 stopDaemonizedServer(server)
+
+
+
+
 
